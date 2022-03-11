@@ -8,9 +8,11 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:loader_overlay/loader_overlay.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'piano.dart';
 
 void main() {
   runApp(MyApp());
+
 }
 
 //chords.txt
@@ -62,6 +64,8 @@ class _MyHomePageState extends State<MyHomePage> {
   var error = false;
   var response;
   var loadingProgress;
+  //var ch_player= chords_player().play();
+  //ch_player.play();
   int _counter = 0;
   int _right = 0;
 //  var right_one = 0;
@@ -76,29 +80,36 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<List> _fetchData() async {
     // buttons.clear();
+    //chords_player().play();
     var keys = [];
     //keys.clear();
     print("hello");
     final url =
     // Uri.parse("http://1.u0156265.z8.ru/old/chord_images/chords.txt");
-    Uri.parse("http://1.u0156265.z8.ru/old/chord_images/checked_chords.txt");
+    //Uri.parse("http://1.u0156265.z8.ru/old/chord_images/checked_chords.txt");
+    Uri.parse("http://1.u0156265.z8.ru/old/chords_easy/chords.json");
+   // Uri.parse("http://1.u0156265.z8.ru/old/pianochords/www.pianochord.org/panfilius.json");
     final response = await http.get(url);
     //print(response);
     if (response.statusCode == 200) {
-      //print(response.body);
+      print("200");
+      print(response.body);
       print("okey");
       final map = json.decode(response.body);
-      final playersJson = map["chords"];
-      print(playersJson);
+      final playersJson = map;
+      print(map);
       //  _isLoading = false;
       this.chords = playersJson;
       // this._counter = this.chords[0].length;
       var counter = 0;
       var condition = false;
-      chords[0].forEach((k, v) {
-        keys.add(v);
-      });
 
+      chords.forEach((k, v)
+          {
+            print(v);
+        keys.add(k);
+      });
+     // keys.add(chords);
       return await keys;
     } else {
       print("bad");
@@ -124,7 +135,7 @@ class _MyHomePageState extends State<MyHomePage> {
         (x.length <= 3 && !numbers.contains(x[x.length - 1])).toString());
     var condition;
     if (filter == "base") {
-      condition = (x.length <= 3 && !numbers.contains(x[x.length - 1]));
+      condition = (!x.contains("/") && x.length <= 3 && !numbers.contains(x[x.length - 1]));
     }
     if (filter == "0") {
       condition = true;
@@ -188,19 +199,37 @@ class _MyHomePageState extends State<MyHomePage> {
 
                   FutureBuilder<List>(
                       builder: (BuildContext context, AsyncSnapshot<List> snapshot) {
-                        //  print("snap="+snapshot.data);
+                          print(snapshot.data);
                         if (snapshot.hasData) {
                           context.loaderOverlay.hide();
-                          var chords = [];
-                          snapshot.data!.forEach((element) {
-                            if (check(element)) {
-                              chords.add(element);
-                            }
-                          });
-                          var some_chord = new Random().nextInt(chords.length);
+                          print(this.chords);
+                          print("chords???");
+                          var inner_chords = [];
+                          //print(chords);
+                          //print(this.keys);
+                          //print(chords);
+                          var final_keys=snapshot.data!;
 
-                          var ch = chords[some_chord];
-                          var buttons = create_buttons(chords, some_chord);
+                          print("<<");
+                          final_keys.forEach((element) {
+                            print(element);
+                          //  if (check(element)) {
+                              //print("el:"+element[2]);
+                              inner_chords.add(element);
+                           // }
+                          });
+                          print("inner??");
+                          print(inner_chords);
+                          var some_chord = new Random().nextInt(inner_chords.length);
+
+                          var ch = inner_chords[some_chord];
+                          var ch_path= ch;
+                          var url;
+                            url ='http://1.u0156265.z8.ru/old/chords_easy/'+this.chords[final_keys[some_chord]][2];
+                          print(url);
+                         // else { url =
+                          print(ch_path);
+                          var buttons = create_buttons(inner_chords, some_chord);
 
                           return Column(children: [
 /*
@@ -226,16 +255,16 @@ class _MyHomePageState extends State<MyHomePage> {
                                 '_img.png',
                           )
                       ),*/
-                            Center(
-                                child: Image.network(
-                                    'http://1.u0156265.z8.ru/old/t_images/chords3/' +
-                                        ch.replaceAll("#", "flat") +
-                                        '_img.png',
-                                    gaplessPlayback: true)),
-                            // Text(chords.length.toString()),
-                            // Text(ch),
-                            Text(filter + " chords"),
-                            //  Text(right_one.toString()),
+
+                            Container(
+
+                                child:  GestureDetector(
+                          onTap: () {create_buttons(inner_chords, some_chord); },
+                              child: Image.network(
+                                url,
+                                gaplessPlayback: true,
+                                fit: BoxFit.contain,
+                              ))),
                             Container(
                                 padding: EdgeInsets.all(20),
                                 child: Wrap(children: buttons))
@@ -269,8 +298,29 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // This trailing comma makes auto-formatting nicer for build methods.
   }
+  nice_string(ch)
+  {
+    var nice_string = ch.toLowerCase().replaceAll("#", "-sharp");
+    nice_string.replaceAll('db','d-flat');
+    nice_string.replaceAll('eb','e-flat');
+    nice_string.replaceAll('gb','g-flat');
+    nice_string.replaceAll('ab','a-flat');
+    nice_string.replaceAll('bb','b-flat');
+    nice_string.replaceAll('db','d-flat');
 
+    if ( nice_string.indexOf("flat")!=(-1) && nice_string.substring(nice_string.length - 5)!="t.png")
+    {
+      nice_string.replaceAll("flat","flat-");
+    }
+
+    if ( nice_string.indexOf("sharp")!=(-1) && nice_string.substring(nice_string.length - 5)!="p.png")
+      {
+          nice_string.replaceAll("sharp","sharp-");
+      }
+return nice_string;
+  }
   create_buttons(keys, some_chord) {
+    chords_player().play(keys[some_chord]);
     var started_from_chords = [];
     keys.forEach((element) {
       if (element[0] == keys[some_chord][0]) // strings beginning same?
@@ -384,7 +434,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   this.filter = "base";
                   Navigator.pop(context);
                 }); } ),
-          _createDrawerItem(
+        /*  _createDrawerItem(
               icon: Icons.audiotrack,
               text: 'All chords',
               onTap: () {
@@ -422,6 +472,16 @@ class _MyHomePageState extends State<MyHomePage> {
               });
             },
           ),
+          _createDrawerItem(
+            icon: Icons.audiotrack,
+            text: 'Inverstions',
+            onTap: () {
+              setState(() {
+                this.filter = "Am/C";
+                Navigator.pop(context);
+              });
+            },
+          ),*/
         ],
       ),
     );
